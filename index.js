@@ -33,9 +33,13 @@ io.on("connection", (socket) => {
       const reply = await prisma.serviceRequestReply.create({
         data: {
           Message: message,
-          RepliedByID: BigInt(ReplyByID),
-          StatusID: BigInt(Status),
-          ServiceRequestID: BigInt(ServiceRequestID),
+          Users: {
+            connect: {
+              UserID: Number(ReplyByID),
+            },
+          },
+          StatusID: Number(Status),
+          ServiceRequestID: Number(ServiceRequestID),
         },
         include: { Users: true },
       });
