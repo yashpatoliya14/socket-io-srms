@@ -2,13 +2,14 @@ import { Server } from "socket.io";
 import { createServer } from "http";
 import express from "express";
 import cors from "cors";
-import { PrismaClient } from "@prisma/client";
+import pkg from "@prisma/client";
+const { PrismaClient } = pkg;
 
 const app = express();
 app.use(cors());
 
 const httpServer = createServer(app);
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({});
 
 // Crucial: Allow cross-origin requests from your Vercel frontend
 const io = new Server(httpServer, {
