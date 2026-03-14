@@ -1,29 +1,145 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("NEXT_DATABASE_URL")
 }
 
-model Users {
-  id                    Int                   @id @default(autoincrement())
-  name                  String?
-  serviceRequestReplies ServiceRequestReply[]
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model ServiceDepartment {
+  ServiceDeptID      BigInt               @id @default(autoincrement())
+  CreatedAt          DateTime             @default(now()) @db.Timestamptz(6)
+  DeptName           String?
+  CCEmails           String?
+  ServiceDeptPerson  ServiceDeptPerson[]
+  ServiceRequestType ServiceRequestType[]
 }
 
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model ServiceDeptPerson {
+  DeptPersonID                 BigInt                         @id @default(autoincrement())
+  CreatedAt                    DateTime                       @default(now()) @db.Timestamptz(6)
+  ServiceDeptID                BigInt?
+  UserID                       BigInt                         @unique
+  IsActive                     Boolean?
+  ModifiedAt                   DateTime?                      @db.Timestamp(6)
+  ServiceDepartment            ServiceDepartment?             @relation(fields: [ServiceDeptID], references: [ServiceDeptID], onDelete: NoAction, onUpdate: NoAction)
+  Users                        Users                          @relation(fields: [UserID], references: [UserID], onDelete: NoAction, onUpdate: NoAction)
+  ServiceRequest               ServiceRequest[]
+  ServiceRequestTypeWisePerson ServiceRequestTypeWisePerson[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model ServiceRequest {
+  ServiceRequestID     BigInt                @id @default(autoincrement())
+  Created              DateTime              @default(now()) @db.Timestamptz(6)
+  RequestNo            BigInt?
+  ServiceRequestTypeID BigInt?
+  RequestorID          BigInt?
+  AssignedToID         BigInt?
+  StatusID             Int?
+  Title                String?
+  Description          String?
+  Priority             BigInt?
+  ServiceDeptPerson    ServiceDeptPerson?    @relation(fields: [AssignedToID], references: [DeptPersonID], onDelete: NoAction, onUpdate: NoAction)
+  Users                Users?                @relation(fields: [RequestorID], references: [UserID], onDelete: NoAction, onUpdate: NoAction, map: "ServiceRequest_RequesterID_fkey")
+  ServiceRequestType   ServiceRequestType?   @relation(fields: [ServiceRequestTypeID], references: [ServiceRequestTypeID], onDelete: NoAction, onUpdate: NoAction)
+  ServiceRequestStatus ServiceRequestStatus? @relation(fields: [StatusID], references: [ServiceRequestStatusID], onDelete: NoAction, onUpdate: NoAction)
+  ServiceRequestReply  ServiceRequestReply[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model ServiceRequestReply {
-  id              Int    @id @default(autoincrement())
-  Message         String
-  RepliedByID     Int
-  StatusID        Int
-  ServiceRequestID Int
+  ReplyID          BigInt         @id @default(autoincrement())
+  Created          DateTime       @default(now()) @db.Timestamptz(6)
+  ServiceRequestID BigInt
+  RepliedByID      BigInt?
+  Message          String?
+  StatusID         BigInt?
+  Users            Users?         @relation(fields: [RepliedByID], references: [UserID], onDelete: NoAction, onUpdate: NoAction)
+  ServiceRequest   ServiceRequest @relation(fields: [ServiceRequestID], references: [ServiceRequestID], onDelete: NoAction, onUpdate: NoAction)
+}
 
-  Users Users @relation(fields: [RepliedByID], references: [id])
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model ServiceRequestStatus {
+  ServiceRequestStatusID       Int              @id
+  ServiceRequestStatusName     String
+  Sequence                     Float?           @db.Real
+  Description                  String?
+  Created                      DateTime         @default(dbgenerated("CURRENT_DATE")) @db.Date
+  Modified                     DateTime         @default(dbgenerated("CURRENT_DATE")) @db.Date
+  ServiceRequestStatusCssClass String?
+  IsAllowedForTechnician       Boolean?
+  ServiceRequest               ServiceRequest[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model ServiceRequestType {
+  ServiceRequestTypeID         BigInt                         @id @default(autoincrement())
+  Created                      DateTime                       @default(now()) @db.Timestamptz(6)
+  ServiceTypeID                BigInt?
+  ServiceDeptID                BigInt?
+  RequestTypeName              String?
+  DefaultPriority              Decimal?                       @db.Decimal
+  IsActive                     Boolean?
+  ServiceRequest               ServiceRequest[]
+  ServiceDepartment            ServiceDepartment?             @relation(fields: [ServiceDeptID], references: [ServiceDeptID], onDelete: NoAction, onUpdate: NoAction)
+  ServiceType                  ServiceType?                   @relation(fields: [ServiceTypeID], references: [ServiceTypeID], onDelete: NoAction, onUpdate: NoAction)
+  ServiceRequestTypeWisePerson ServiceRequestTypeWisePerson[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model ServiceType {
+  ServiceTypeID      BigInt               @id @default(autoincrement())
+  Created            DateTime             @default(now()) @db.Timestamptz(6)
+  ServiceTypeName    String?
+  ServiceRequestType ServiceRequestType[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model Users {
+  UserID              BigInt                @id @default(autoincrement())
+  created_at          DateTime              @default(now()) @db.Timestamptz(6)
+  Role                String?               @default("Normal")
+  FullName            String?
+  Username            String?               @default("")
+  ProfilePhoto        String?               @default("NULL")
+  IsVerified          Boolean?              @default(false)
+  Password            String?
+  Email               String                @unique
+  Phone               Decimal?              @db.Decimal
+  ServiceDeptPerson   ServiceDeptPerson?
+  ServiceRequest      ServiceRequest[]
+  ServiceRequestReply ServiceRequestReply[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model ServiceRequestTypeWisePerson {
+  ServiceRequestTypeWisePerson BigInt              @id @default(autoincrement())
+  CreatedAt                    DateTime            @default(now()) @db.Timestamptz(6)
+  ServiceRequestTypeID         BigInt?
+  FromDate                     DateTime?           @db.Date
+  ToDate                       DateTime?           @db.Date
+  ServicePersonID              BigInt?
+  ModifiedAt                   DateTime?           @default(now()) @db.Timestamp(6)
+  ServiceDeptPerson            ServiceDeptPerson?  @relation(fields: [ServicePersonID], references: [DeptPersonID], onDelete: NoAction, onUpdate: NoAction)
+  ServiceRequestType           ServiceRequestType? @relation(fields: [ServiceRequestTypeID], references: [ServiceRequestTypeID], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model TempUser {
+  id           BigInt    @id @default(autoincrement())
+  Created_At   DateTime  @default(now()) @db.Timestamptz(6)
+  Email        String?   @unique
+  Otp          Decimal?  @db.Decimal
+  OtpExpired   DateTime? @db.Timestamptz(6)
+  Role         String?
+  FullName     String?
+  Username     String?
+  ProfilePhoto String?
+  IsVerified   Boolean?
+  Password     String?
+  Phone        Decimal?  @db.Decimal
 }

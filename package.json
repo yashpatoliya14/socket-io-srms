@@ -7,7 +7,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
-    "dev": "node index.js"
+    "dev": "nodemon index.js"
   },
   "author": "",
   "license": "ISC",
@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "dotenv": "^17.3.1",
+    "nodemon": "^3.1.14",
     "prisma": "^4.16.1"
   }
 }

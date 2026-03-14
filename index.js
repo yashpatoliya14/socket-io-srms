@@ -33,14 +33,21 @@ io.on("connection", (socket) => {
       const reply = await prisma.serviceRequestReply.create({
         data: {
           Message: message,
-          RepliedByID: Number(ReplyByID),
-          StatusID: Number(Status),
-          ServiceRequestID: Number(ServiceRequestID),
+          RepliedByID: BigInt(ReplyByID),
+          StatusID: BigInt(Status),
+          ServiceRequestID: BigInt(ServiceRequestID),
         },
         include: { Users: true },
       });
 
-      io.to(`request_${ServiceRequestID}`).emit("receive_message", reply);
+      // Socket.io parser natively throws on BigInt primitives, so we safely convert them to strings first
+      const safeReply = JSON.parse(
+        JSON.stringify(reply, (key, value) =>
+          typeof value === "bigint" ? value.toString() : value
+        )
+      );
+
+      io.to(`request_${ServiceRequestID}`).emit("receive_message", safeReply);
     } catch (err) {
       console.error(err);
     }
