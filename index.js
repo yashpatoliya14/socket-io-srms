@@ -30,15 +30,34 @@ io.on("connection", (socket) => {
     try {
       const { message, ReplyByID, Status, ServiceRequestID } = data;
 
-      const reply = await prisma.serviceRequestReply.create({
-        data: {
-          Message: message,
-          RepliedByID: BigInt(ReplyByID),
-          StatusID: BigInt(Status),
-          ServiceRequestID: BigInt(ServiceRequestID),
-        },
-        include: { Users: true },
-      });
+      let reply;
+      try {
+        // Attempt first with modern native BigInts and raw IDs (Local Dev schema)
+        reply = await prisma.serviceRequestReply.create({
+          data: {
+            Message: message,
+            RepliedByID: BigInt(ReplyByID),
+            StatusID: BigInt(Status),
+            ServiceRequestID: BigInt(ServiceRequestID),
+          },
+          include: { Users: true },
+        });
+      } catch (err) {
+        // Fallback for Render deployment (Old Int / Relational Schema)
+        reply = await prisma.serviceRequestReply.create({
+          data: {
+            Message: message,
+            Users: {
+              connect: {
+                UserID: Number(ReplyByID),
+              },
+            },
+            StatusID: Number(Status),
+            ServiceRequestID: Number(ServiceRequestID),
+          },
+          include: { Users: true },
+        });
+      }
 
       // Socket.io parser natively throws on BigInt primitives, so we safely convert them to strings first
       const safeReply = JSON.parse(
